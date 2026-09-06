@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Witty Buddy Play School — Online Admin</title>
+<style>
+body{font-family:Arial;margin:0;background:#f5f7fb;color:#172033}header{background:#173b7a;color:#fff;padding:18px}main{max-width:1000px;margin:auto;padding:15px}.card{background:#fff;border-radius:15px;padding:18px;margin:14px 0;box-shadow:0 4px 18px #0001}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}label{display:block;font-weight:bold;margin:9px 0 5px}input,textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccd3df;border-radius:8px}textarea{min-height:80px}button{padding:10px 15px;border:0;border-radius:8px;background:#173b7a;color:#fff;font-weight:bold;margin:6px 5px 0 0;cursor:pointer}.danger{background:#b42318}.muted{color:#667085;font-size:13px}.hidden{display:none}.item{border:1px solid #e1e5ec;border-radius:10px;padding:10px;margin-top:8px}img{max-width:180px;border-radius:8px;margin-top:8px}.notice{padding:10px;background:#fff8e6;border-left:4px solid #e0a100;border-radius:7px}
+</style></head><body><header><h1>Witty Buddy Play School</h1><div>Online Admin Panel</div></header><main>
+<section id="login" class="card"><h2>Admin Login</h2><p class="muted">Use the username/password configured on the server.</p><label>Username</label><input id="user"><label>Password</label><input id="pass" type="password"><button onclick="login()">Login</button><p id="loginMsg"></p></section>
+<section id="panel" class="hidden">
+<div class="card"><button class="danger" onclick="logout()">Logout</button><button onclick="load()">Refresh</button></div>
+<div class="notice">This version uses a real server-side database and session login. Before deployment, set strong ADMIN_PASSWORD and SESSION_SECRET environment variables.</div>
+<section class="card"><h2>School & Contact</h2><div class="grid"><div><label>School Name</label><input id="schoolName"></div><div><label>Tagline</label><input id="tagline"></div><div><label>Mobile</label><input id="mobile"></div><div><label>WhatsApp</label><input id="whatsapp"></div><div><label>Admission Fee</label><input id="admissionFee"></div><div><label>UPI ID</label><input id="upiId"></div></div><label>Address</label><textarea id="address"></textarea><button onclick="saveSettings()">Save Details</button></section>
+<section class="card"><h2>Notices</h2><input id="nt" placeholder="Title"><textarea id="nb" placeholder="Notice text"></textarea><button onclick="addNotice()">Add</button><div id="notices"></div></section>
+<section class="card"><h2>Achievements</h2><input id="at" placeholder="Title"><textarea id="ab" placeholder="Description"></textarea><input id="ai" type="file" accept="image/*"><button onclick="addAchievement()">Add</button><div id="achievements"></div></section>
+<section class="card"><h2>Gallery</h2><input id="gc" placeholder="Caption"><input id="gi" type="file" accept="image/*"><button onclick="addGallery()">Add Photo</button><div id="gallery"></div></section>
+<section class="card"><h2>Results</h2><input id="rt" placeholder="Heading"><textarea id="rb" placeholder="Result details"></textarea><button onclick="addResult()">Add</button><div id="results"></div></section>
+<section class="card"><h2>Admission Applications</h2><div id="admissions"></div></section>
+</section></main>
+<script>
+const $=x=>document.getElementById(x);
+async function api(url,opt={}){let r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt});let j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'Request failed');return j}
+async function check(){let m=await api('/api/me');if(m.loggedIn){$('login').classList.add('hidden');$('panel').classList.remove('hidden');load()}}
+async function login(){try{await api('/api/login',{method:'POST',body:JSON.stringify({username:$('user').value,password:$('pass').value})});$('login').classList.add('hidden');$('panel').classList.remove('hidden');load()}catch(e){$('loginMsg').textContent=e.message}}
+async function logout(){await api('/api/logout',{method:'POST'});location.reload()}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])}
+async function load(){let d=await api('/api/site');let s=d.settings;['schoolName','tagline','mobile','whatsapp','admissionFee','upiId','address'].forEach(k=>$(k).value=s[k]||'');
+$('notices').innerHTML=d.notices.map(x=>`<div class=item><b>${esc(x.title)}</b><div>${esc(x.body)}</div><button class=danger onclick="del('/api/notices/${x.id}')">Delete</button></div>`).join('');
+$('achievements').innerHTML=d.achievements.map(x=>`<div class=item><b>${esc(x.title)}</b><div>${esc(x.body)}</div>${x.image?`<img src="${x.image}">`:''}<br><button class=danger onclick="del('/api/achievements/${x.id}')">Delete</button></div>`).join('');
+$('gallery').innerHTML=d.gallery.map(x=>`<div class=item><img src="${x.image}"><div>${esc(x.caption)}</div><button class=danger onclick="del('/api/gallery/${x.id}')">Delete</button></div>`).join('');
+$('results').innerHTML=d.results.map(x=>`<div class=item><b>${esc(x.title)}</b><div>${esc(x.body)}</div><button class=danger onclick="del('/api/results/${x.id}')">Delete</button></div>`).join('');
+let a=await api('/api/admissions');$('admissions').innerHTML=a.map(x=>`<div class=item><b>${esc(x.student_name)}</b> — ${esc(x.class_name)}<br>Guardian: ${esc(x.guardian_name)}<br>Mobile: ${esc(x.mobile)}<br>Address: ${esc(x.address)}<br><span class=muted>${esc(x.created_at)}</span></div>`).join('')||'<p>No applications yet.</p>'}
+async function saveSettings(){let o={};['schoolName','tagline','mobile','whatsapp','admissionFee','upiId','address'].forEach(k=>o[k]=$(k).value);await api('/api/settings',{method:'PUT',body:JSON.stringify(o)});alert('Saved')}
+async function addNotice(){await api('/api/notices',{method:'POST',body:JSON.stringify({title:$('nt').value,body:$('nb').value})});$('nt').value='';$('nb').value='';load()}
+async function fileData(id){let f=$(id).files[0];if(!f)return '';return await new Promise((res,rej)=>{let r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)})}
+async function addAchievement(){await api('/api/achievements',{method:'POST',body:JSON.stringify({title:$('at').value,body:$('ab').value,image:await fileData('ai')})});load()}
+async function addGallery(){await api('/api/gallery',{method:'POST',body:JSON.stringify({caption:$('gc').value,image:await fileData('gi')})});load()}
+async function addResult(){await api('/api/results',{method:'POST',body:JSON.stringify({title:$('rt').value,body:$('rb').value})});load()}
+async function del(url){if(confirm('Delete this item?')){await api(url,{method:'DELETE'});load()}}
+check();
+</script></body></html>

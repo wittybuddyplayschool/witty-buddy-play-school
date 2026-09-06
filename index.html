@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Witty Buddy Play School</title>
+<meta name="description" content="Witty Buddy Play School - Small steps, big learning, new beginnings every day.">
+<style>
+:root{--primary:#5b4bdb;--accent:#ffb703;--dark:#172033;--light:#f6f7fb;--card:#fff}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:var(--dark);background:var(--light);line-height:1.6}
+header{background:linear-gradient(135deg,#5b4bdb,#7c6ff0);color:#fff;position:sticky;top:0;z-index:10}
+.nav{max-width:1100px;margin:auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:15px}
+.logo{width:52px;height:52px;border-radius:14px;background:#fff;color:var(--primary);display:grid;place-items:center;font-weight:800;font-size:13px}
+.brand{display:flex;align-items:center;gap:12px}.brand h1{font-size:18px;margin:0}.brand small{opacity:.85}
+nav a{color:#fff;text-decoration:none;margin-left:18px;font-weight:600}
+.btn{display:inline-block;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:700;border:0;cursor:pointer}
+.btn.primary{background:var(--accent);color:#172033}.btn.light{background:#fff;color:var(--primary)}
+.hero{max-width:1100px;margin:auto;padding:75px 20px 85px;display:grid;grid-template-columns:1.2fr .8fr;gap:35px;align-items:center}
+.hero h2{font-size:clamp(38px,6vw,64px);line-height:1.05;margin:12px 0}.hero p{font-size:19px;opacity:.92}
+.hero-card{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:28px;border-radius:25px;text-align:center}
+.hero-card .photo{height:260px;border-radius:20px;background:#fff;display:grid;place-items:center;color:#777;font-weight:700}
+section{max-width:1100px;margin:auto;padding:65px 20px}h2.section-title{text-align:center;font-size:34px;margin:0 0 10px}p.sub{text-align:center;color:#667085;margin:0 auto 35px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.card{background:var(--card);padding:28px;border-radius:20px;box-shadow:0 8px 30px rgba(20,20,50,.07)}
+.card h3{margin-top:0}.icon{font-size:34px}.about{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center}.box{background:#fff;border-radius:22px;padding:30px}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.gallery div{height:190px;border-radius:18px;background:#e5e7eb;display:grid;place-items:center;color:#667085}
+form{max-width:700px;margin:auto;background:#fff;padding:28px;border-radius:20px;box-shadow:0 8px 30px rgba(20,20,50,.07)}
+input,select,textarea{width:100%;padding:13px;border:1px solid #d9dce5;border-radius:10px;margin:6px 0 16px;font:inherit}
+footer{background:#172033;color:#fff;padding:40px 20px}.footer-inner{max-width:1100px;margin:auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:25px}
+@media(max-width:800px){nav{display:none}.hero,.about,.footer-inner{grid-template-columns:1fr}.cards,.gallery{grid-template-columns:1fr}.hero{padding-top:45px}.gallery div{height:150px}}
+</style>
+</head>
+<body>
+<header>
+<div class="nav">
+<div class="brand"><div class="logo" style="overflow:hidden;padding:0;background:#fff"><img src="assets/school-logo.png" alt="Witty Buddy Play School logo" style="width:100%;height:100%;object-fit:cover"></div><div><h1>Witty Buddy Play School</h1><small>Small steps, big learning, new beginnings every day.</small></div></div>
+<nav><a href="#home">Home</a><a href="#admission">Admissions</a><a href="#notices">Notices</a><a href="#gallery">Gallery</a><a href="#results">Results</a><a href="#contact">Contact</a></nav>
+</div>
+</header>
+
+<main id="home">
+<div style="background:linear-gradient(135deg,#5b4bdb,#7c6ff0);color:white">
+<section class="hero">
+<div><div class="btn light">Welcome to our school</div><h2>Learn. Play. Grow.</h2><p>Small steps, big learning, new beginnings every day.</p><a class="btn" style="background:#ffb703;color:#172033" href="#admission">Apply for Admission</a> <a class="btn light" href="#contact">Contact Us</a></div>
+<div class="hero-card" style="padding:10px"><img id="homeBanner" src="assets/home-banner.jpg" alt="Witty Buddy Play School classroom" style="width:100%;height:260px;object-fit:cover;border-radius:20px;display:block"></div>
+</section>
+</div>
+
+<section>
+<h2 class="section-title">School Highlights</h2><p class="sub">Everything you need in one place.</p>
+<div class="cards">
+<div class="card"><div class="icon">📝</div><h3>Admissions</h3><p>Fill the online admission form and continue to the UPI payment step.</p><a class="btn primary" href="#admission">Apply Now</a></div>
+<div class="card"><div class="icon">📢</div><h3>Notices</h3><p>School circulars and important announcements will appear here.</p><a class="btn primary" href="#notices">View Notices</a></div>
+<div class="card"><div class="icon">🖼️</div><h3>Gallery</h3><p>Add school activities, events and classroom photographs anytime.</p><a class="btn primary" href="#gallery">View Gallery</a></div>
+</div>
+</section>
+
+<section id="about"><div class="about"><div><h2 class="section-title" style="text-align:left">About Witty Buddy</h2><p>We aim to create a happy, safe and engaging learning environment where children can learn through play, activities and discovery.</p></div><div class="box"><h3>Our Promise</h3><p>Encourage curiosity • Build confidence • Celebrate every little achievement</p></div></div></section>
+
+<section id="admission">
+<h2 class="section-title">Online Admission Form</h2><p class="sub">Submit your details below. Fee amount and UPI details can be configured later.</p>
+<form onsubmit="event.preventDefault(); document.getElementById('payment').style.display='block'; document.getElementById('thanks').style.display='block';">
+<label>Student Name</label><input required>
+<label>Class</label><select required><option value="">Select class</option><option>Play Group</option><option>Nursery</option><option>LKG</option><option>UKG</option></select>
+<label>Parent/Guardian Name</label><input required>
+<label>Mobile Number</label><input type="tel" required>
+<label>Address</label><textarea rows="3"></textarea>
+<label>Document (optional)</label><input type="file">
+<button class="btn primary" type="submit">Submit & Proceed to Payment</button>
+<div id="thanks" style="display:none;margin-top:15px"><strong>Application received.</strong> Please proceed to the payment step.</div>
+<div id="payment" style="display:none;margin-top:15px;padding:18px;background:#f6f7fb;border-radius:14px">
+<strong>UPI Payment</strong><p>UPI payment details will be added here once the school provides the UPI ID and final fee amount.</p>
+<button class="btn" type="button" onclick="alert('UPI details are not configured yet.')">Pay via UPI</button>
+</div>
+</form></section>
+
+<section id="notices"><h2 class="section-title">Latest Notices</h2><p class="sub">Your school notices will be editable later.</p><div class="cards"><div class="card"><h3>Welcome Notice</h3><p>Add your first school announcement here.</p></div><div class="card"><h3>Holiday / Event</h3><p>Add event details and dates here.</p></div><div class="card"><h3>Important Update</h3><p>Add important information for parents.</p></div></div></section>
+
+<section id="gallery"><h2 class="section-title">Gallery & Achievements</h2><p class="sub">School activities, memories and achievements.</p><div class="gallery">
+<img src="gallery/school-photo-1.jpg" alt="School activity" style="width:100%;height:190px;object-fit:cover;border-radius:18px">
+<img src="gallery/school-photo-2.jpg" alt="Classroom activity" style="width:100%;height:190px;object-fit:cover;border-radius:18px">
+<img src="gallery/school-photo-3.jpg" alt="Student achievement" style="width:100%;height:190px;object-fit:cover;border-radius:18px">
+<img src="gallery/school-photo-4.jpg" alt="School activity" style="width:100%;height:190px;object-fit:cover;border-radius:18px">
+<img src="gallery/school-photo-5.jpg" alt="School activity" style="width:100%;height:190px;object-fit:cover;border-radius:18px">
+<div style="height:190px;border-radius:18px;background:#e5e7eb;display:grid;place-items:center;color:#667085;font-weight:700">Add more photos later</div>
+</div></section>
+
+<section id="results"><h2 class="section-title">Student Results</h2><p class="sub">Result search can be connected to your student database later.</p><form><label>Student / Roll Number</label><input placeholder="Enter roll number"><button class="btn primary" type="button" onclick="alert('Result database will be connected in the next development step.')">Check Result</button></form></section>
+
+<section id="contact"><h2 class="section-title">Contact Us</h2><p class="sub">We would love to hear from you.</p><div class="cards"><div class="card"><h3>📍 Address</h3><p>Witty Buddy Play School, Ayodhyapuri, Front of Hotel Grand Patliputra, Near Daroga Rai College, Mairwa Road, Siwan, Bihar, PIN-841226</p></div><div class="card"><h3>📞 Call / WhatsApp</h3><p>Mobile number to be confirmed and added here.</p></div><div class="card"><h3>🗺️ Location</h3><p>Google Maps location can be embedded after the exact map pin is confirmed.</p></div></div></section>
+</main>
+
+<footer><div class="footer-inner"><div><h2>Witty Buddy Play School</h2><p>Small steps, big learning, new beginnings every day.</p></div><div><h3>Quick Links</h3><p>Admissions<br>Notices<br>Gallery<br>Results</p></div><div><h3>Website</h3><p>wittybuddyplayschool.in</p></div></div></footer>
+<script>
+(function(){
+  const saved = localStorage.getItem("wittyBuddyHomeBanner");
+  if(saved){ document.getElementById("homeBanner").src = saved; }
+})();
+</script>
+<script>
+(function(){
+  try{
+    const c=JSON.parse(localStorage.getItem('wbsContact')||'null');
+    const p=JSON.parse(localStorage.getItem('wbsPayment')||'null');
+    const b=localStorage.getItem('wittyBuddyHomeBanner');
+    if(b){
+      document.querySelectorAll('img').forEach(function(img){
+        if((img.alt||'').toLowerCase().includes('banner')) img.src=b;
+      });
+    }
+    if(c){
+      document.querySelectorAll('[href^="tel:"]').forEach(function(a){if(c.mobile)a.href='tel:'+c.mobile.replace(/\s+/g,'')});
+      document.querySelectorAll('[href^="https://wa.me/"]').forEach(function(a){if(c.whatsapp)a.href='https://wa.me/'+c.whatsapp.replace(/\D/g,'')});
+    }
+  }catch(e){}
+})();
+</script>
+
+</body></html>

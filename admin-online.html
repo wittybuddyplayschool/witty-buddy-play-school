@@ -15,11 +15,31 @@ body{font-family:Arial;margin:0;background:#f5f7fb;color:#172033}header{backgrou
 </section></main>
 <script>
 const $=x=>document.getElementById(x);
-async function api(url,opt={}){let r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt});let j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'Request failed');return j}
-async function check(){let m=await api('/api/me');if(m.loggedIn){$('login').classList.add('hidden');$('panel').classList.remove('hidden');load()}}
-async function login(){try{await api('/api/login',{method:'POST',body:JSON.stringify({username:$('user').value,password:$('pass').value})});$('login').classList.add('hidden');$('panel').classList.remove('hidden');load()}catch(e){$('loginMsg').textContent=e.message}}
+async function api(url,opt={}){
+  try{
+    const r=await fetch(url,{credentials:'same-origin',...opt,headers:{'Content-Type':'application/json',...(opt.headers||{})}});
+    const text=await r.text();
+    let j={}; try{j=text?JSON.parse(text):{}}catch(_){j={error:text||`HTTP ${r.status}`}}
+    if(!r.ok) throw Error(j.error||`Request failed (HTTP ${r.status})`);
+    return j;
+  }catch(e){ throw e; }
+}
+function showLogin(msg,ok=false){const el=$('loginMsg');el.textContent=msg||'';el.style.color=ok?'#087443':'#b42318';el.style.fontWeight='bold'}
+async function check(){try{let m=await api('/api/me');if(m.loggedIn){$('login').classList.add('hidden');$('panel').classList.remove('hidden');await load()}}catch(e){/* login page can still be used */}}
+async function login(){
+  const u=$('user').value.trim(), p=$('pass').value;
+  if(!u||!p){showLogin('Username और Password दोनों भरें।');return}
+  const btn=document.querySelector('#login button');btn.disabled=true;btn.textContent='Logging in...';showLogin('');
+  try{
+    await api('/api/login',{method:'POST',body:JSON.stringify({username:u,password:p})});
+    showLogin('Login successful. Opening Admin Panel...',true);
+    $('login').classList.add('hidden');$('panel').classList.remove('hidden');await load();
+  }catch(e){showLogin(e.message||'Login failed');}
+  finally{btn.disabled=false;btn.textContent='Login';}
+}
+$('pass').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 async function logout(){await api('/api/logout',{method:'POST'});location.reload()}
-function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])}
 async function load(){let d=await api('/api/site');let s=d.settings;['schoolName','tagline','mobile','whatsapp','admissionFee','upiId','address'].forEach(k=>$(k).value=s[k]||'');
 $('notices').innerHTML=d.notices.map(x=>`<div class=item><b>${esc(x.title)}</b><div>${esc(x.body)}</div><button class=danger onclick="del('/api/notices/${x.id}')">Delete</button></div>`).join('');
 $('achievements').innerHTML=d.achievements.map(x=>`<div class=item><b>${esc(x.title)}</b><div>${esc(x.body)}</div>${x.image?`<img src="${x.image}">`:''}<br><button class=danger onclick="del('/api/achievements/${x.id}')">Delete</button></div>`).join('');

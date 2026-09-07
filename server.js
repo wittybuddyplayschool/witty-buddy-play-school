@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS admissions (
 `);
 
 const defaultUser = process.env.ADMIN_USERNAME || "admin";
-const defaultPass = process.env.ADMIN_PASSWORD || "CHANGE_ME_NOW";
+const defaultPass = process.env.ADMIN_PASSWORD || "Witty@2026";
 const exists = db.prepare("SELECT id FROM admin_users WHERE username=?").get(defaultUser);
 if (!exists) {
   db.prepare("INSERT INTO admin_users(username,password_hash) VALUES(?,?)")
@@ -149,4 +149,4 @@ app.post("/api/admissions", (req,res)=>{
 app.get("/api/admissions",auth,(req,res)=>res.json(db.prepare("SELECT * FROM admissions ORDER BY id DESC").all()));
 
 app.get("/admin", (req,res)=>res.sendFile(path.join(__dirname,"admin-online.html")));
-app.listen(PORT,()=>console.log(`Witty Buddy Play School running on port ${PORT}`));
+app.listen(PORT,"0.0.0.0",()=>console.log(`Witty Buddy Play School running on port ${PORT}`));

@@ -65,6 +65,9 @@ const exists = db.prepare("SELECT id FROM admin_users WHERE username=?").get(def
 if (!exists) {
   db.prepare("INSERT INTO admin_users(username,password_hash) VALUES(?,?)")
     .run(defaultUser, bcrypt.hashSync(defaultPass, 12));
+} else if (process.env.ADMIN_PASSWORD) {
+  db.prepare("UPDATE admin_users SET password_hash=? WHERE username=?")
+    .run(bcrypt.hashSync(defaultPass, 12), defaultUser);
 }
 
 const defaults = {
@@ -101,7 +104,8 @@ function allData(){
  };
 }
 
-app.get("/api/site", (req,res)=>res.json(allData()));
+app.get("/api/health", (req,res)=>res.json({ok:true,db:DB_FILE}));
+app.get("/api/site", (req,res)=>{try{res.set("Cache-Control","no-store");res.json(allData())}catch(e){console.error("site read failed",e);res.status(500).json({error:"Database read failed: "+e.message})}});
 app.post("/api/login",(req,res)=>{
  const {username,password}=req.body;
  const u=db.prepare("SELECT * FROM admin_users WHERE username=?").get(username||"");
@@ -112,10 +116,18 @@ app.post("/api/logout",auth,(req,res)=>req.session.destroy(()=>res.json({ok:true
 app.get("/api/me",(req,res)=>res.json({loggedIn:!!req.session.user,username:req.session.user?.username||""}));
 
 app.put("/api/settings",auth,(req,res)=>{
- const allowed=["schoolName","tagline","address","mobile","whatsapp","admissionFee","upiId"];
- const st=db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value");
- const tx=db.transaction(()=>allowed.forEach(k=>{if(req.body[k]!==undefined)st.run(k,String(req.body[k]))}));
- tx(); res.json({ok:true,settings:allData().settings});
+ try {
+  const allowed=["schoolName","tagline","address","mobile","whatsapp","admissionFee","upiId"];
+  const st=db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+  const tx=db.transaction(()=>allowed.forEach(k=>{if(req.body[k]!==undefined)st.run(k,String(req.body[k]))}));
+  tx();
+  console.log("Settings saved by", req.session.user?.username);
+  res.set("Cache-Control","no-store");
+  res.json({ok:true,settings:allData().settings});
+ } catch(e) {
+  console.error("settings save failed",e);
+  res.status(500).json({error:"Database save failed: "+e.message});
+ }
 });
 app.post("/api/notices",auth,(req,res)=>{
  if(!req.body.title || !req.body.body) return res.status(400).json({error:"Title and body required"});
@@ -149,4 +161,5 @@ app.post("/api/admissions", (req,res)=>{
 app.get("/api/admissions",auth,(req,res)=>res.json(db.prepare("SELECT * FROM admissions ORDER BY id DESC").all()));
 
 app.get("/admin", (req,res)=>res.sendFile(path.join(__dirname,"admin-online.html")));
+app.use((err,req,res,next)=>{console.error("Unhandled server error",err);if(res.headersSent)return next(err);res.status(500).json({error:"Server error: "+err.message})});
 app.listen(PORT,"0.0.0.0",()=>console.log(`Witty Buddy Play School running on port ${PORT}`));

@@ -82,13 +82,14 @@ const defaults = {
 const setStmt = db.prepare("INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)");
 Object.entries(defaults).forEach(([k,v])=>setStmt.run(k,v));
 
+app.set("trust proxy", 1);
 app.use(express.json({limit:"8mb"}));
 app.use(express.urlencoded({extended:true, limit:"8mb"}));
 app.use(session({
  secret: process.env.SESSION_SECRET || "CHANGE_THIS_SESSION_SECRET",
  resave: false,
  saveUninitialized: false,
- cookie: { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 1000*60*60*8 }
+ cookie: { httpOnly: true, sameSite: "lax", secure: true, maxAge: 1000*60*60*8 }
 }));
 app.use(express.static(__dirname));
 
@@ -110,7 +111,12 @@ app.post("/api/login",(req,res)=>{
  const {username,password}=req.body;
  const u=db.prepare("SELECT * FROM admin_users WHERE username=?").get(username||"");
  if(!u || !bcrypt.compareSync(password||"",u.password_hash)) return res.status(401).json({error:"Invalid login"});
- req.session.user={id:u.id,username:u.username}; res.json({ok:true});
+ req.session.user={id:u.id,username:u.username};
+ req.session.save(err=>{
+   if(err){ console.error("session save failed",err); return res.status(500).json({error:"Session save failed: "+err.message}); }
+   res.set("Cache-Control","no-store");
+   res.json({ok:true});
+ });
 });
 app.post("/api/logout",auth,(req,res)=>req.session.destroy(()=>res.json({ok:true})));
 app.get("/api/me",(req,res)=>res.json({loggedIn:!!req.session.user,username:req.session.user?.username||""}));

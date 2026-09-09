@@ -41,7 +41,7 @@ footer{background:#172033;color:#fff;padding:40px 20px}.footer-inner{max-width:1
 <div style="background:linear-gradient(135deg,#5b4bdb,#7c6ff0);color:white">
 <section class="hero">
 <div><div class="btn light">Welcome to our school</div><h2>Learn. Play. Grow.</h2><p>Small steps, big learning, new beginnings every day.</p><a class="btn" style="background:#ffb703;color:#172033" href="#admission">Apply for Admission</a> <a class="btn light" href="#contact">Contact Us</a></div>
-<div class="hero-card" style="padding:10px"><img id="homeBanner" src="assets/home-banner.jpg" alt="Witty Buddy Play School classroom" style="width:100%;height:260px;object-fit:cover;border-radius:20px;display:block"></div>
+<div class="hero-card" style="padding:10px"><img id="homeBanner" src="assets/classroom-1.jpg" alt="Witty Buddy Play School classroom" style="width:100%;height:260px;object-fit:cover;border-radius:20px;display:block"></div>
 </section>
 </div>
 
@@ -75,7 +75,7 @@ footer{background:#172033;color:#fff;padding:40px 20px}.footer-inner{max-width:1
 
 <section id="notices"><h2 class="section-title">Latest Notices</h2><p class="sub">Latest school announcements.</p><div id="publicNotices" class="cards"><div class="card"><h3>Loading notices…</h3><p>Please wait.</p></div></div></section>
 
-<section id="gallery"><h2 class="section-title">Gallery & Achievements</h2><p class="sub">School activities, memories and achievements.</p><div id="publicGallery" class="gallery"><div style="height:190px;border-radius:18px;background:#e5e7eb;display:grid;place-items:center;color:#667085;font-weight:700">Loading…</div></div><div id="publicAchievements" class="cards" style="margin-top:20px"></div></section>
+<section id="gallery"><h2 class="section-title">Gallery & Achievements</h2><p class="sub">School activities, memories and achievements.</p><div id="publicGallery" class="gallery"><div class="gallery-item"><img src="assets/classroom-1.jpg" alt="Witty Buddy Play School classroom" style="width:100%;height:190px;object-fit:cover;border-radius:18px"><div style="padding:8px 2px;font-weight:600">Our Classroom</div></div></div><div id="publicAchievements" class="cards" style="margin-top:20px"></div></section>
 
 <section id="results"><h2 class="section-title">Student Results</h2><p class="sub">Latest published results.</p><div id="publicResults" class="cards"><div class="card"><h3>Loading results…</h3></div></div></section>
 
@@ -104,7 +104,7 @@ footer{background:#172033;color:#fff;padding:40px 20px}.footer-inner{max-width:1
     const notices=document.getElementById('publicNotices');
     notices.innerHTML=(data.notices||[]).length ? data.notices.map(n=>'<div class="card"><h3>'+esc(n.title)+'</h3><p>'+esc(n.body).replace(/\n/g,'<br>')+'</p></div>').join('') : '<div class="card"><h3>No notices yet</h3><p>New school notices will appear here.</p></div>';
     const gallery=document.getElementById('publicGallery');
-    gallery.innerHTML=(data.gallery||[]).length ? data.gallery.map(g=>'<div><img src="'+esc(g.image)+'" alt="'+esc(g.caption||'School activity')+'" style="width:100%;height:190px;object-fit:cover;border-radius:18px"><div style="padding:8px 2px;font-weight:600">'+esc(g.caption||'')+'</div></div>').join('') : '<div style="height:190px;border-radius:18px;background:#e5e7eb;display:grid;place-items:center;color:#667085;font-weight:700">No photos yet</div>';
+    const classroom='<div class="gallery-item"><img src="assets/classroom-1.jpg" alt="Witty Buddy Play School classroom" style="width:100%;height:190px;object-fit:cover;border-radius:18px"><div style="padding:8px 2px;font-weight:600">Our Classroom</div></div>'; const adminGallery=(data.gallery||[]).map(g=>'<div><img src="'+esc(g.image)+'" alt="'+esc(g.caption||'School activity')+'" style="width:100%;height:190px;object-fit:cover;border-radius:18px"><div style="padding:8px 2px;font-weight:600">'+esc(g.caption||'')+'</div></div>').join(''); gallery.innerHTML=classroom+adminGallery;
     const ach=document.getElementById('publicAchievements');
     ach.innerHTML=(data.achievements||[]).length ? data.achievements.map(a=>'<div class="card"><h3>'+esc(a.title)+'</h3><p>'+esc(a.body).replace(/\n/g,'<br>')+'</p>'+(a.image?'<img src="'+esc(a.image)+'" alt="Achievement" style="width:100%;max-height:240px;object-fit:cover;border-radius:14px">':'')+'</div>').join('') : '';
     const results=document.getElementById('publicResults');

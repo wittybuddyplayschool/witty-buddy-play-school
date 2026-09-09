@@ -73,46 +73,62 @@ footer{background:#172033;color:#fff;padding:40px 20px}.footer-inner{max-width:1
 </div>
 </form></section>
 
-<section id="notices"><h2 class="section-title">Latest Notices</h2><p class="sub">Your school notices will be editable later.</p><div class="cards"><div class="card"><h3>Welcome Notice</h3><p>Add your first school announcement here.</p></div><div class="card"><h3>Holiday / Event</h3><p>Add event details and dates here.</p></div><div class="card"><h3>Important Update</h3><p>Add important information for parents.</p></div></div></section>
+<section id="notices"><h2 class="section-title">Latest Notices</h2><p class="sub">Latest school announcements.</p><div id="publicNotices" class="cards"><div class="card"><h3>Loading notices…</h3><p>Please wait.</p></div></div></section>
 
-<section id="gallery"><h2 class="section-title">Gallery & Achievements</h2><p class="sub">School activities, memories and achievements.</p><div class="gallery">
-<img src="gallery/school-photo-1.jpg" alt="School activity" style="width:100%;height:190px;object-fit:cover;border-radius:18px">
-<img src="gallery/school-photo-2.jpg" alt="Classroom activity" style="width:100%;height:190px;object-fit:cover;border-radius:18px">
-<img src="gallery/school-photo-3.jpg" alt="Student achievement" style="width:100%;height:190px;object-fit:cover;border-radius:18px">
-<img src="gallery/school-photo-4.jpg" alt="School activity" style="width:100%;height:190px;object-fit:cover;border-radius:18px">
-<img src="gallery/school-photo-5.jpg" alt="School activity" style="width:100%;height:190px;object-fit:cover;border-radius:18px">
-<div style="height:190px;border-radius:18px;background:#e5e7eb;display:grid;place-items:center;color:#667085;font-weight:700">Add more photos later</div>
-</div></section>
+<section id="gallery"><h2 class="section-title">Gallery & Achievements</h2><p class="sub">School activities, memories and achievements.</p><div id="publicGallery" class="gallery"><div style="height:190px;border-radius:18px;background:#e5e7eb;display:grid;place-items:center;color:#667085;font-weight:700">Loading…</div></div><div id="publicAchievements" class="cards" style="margin-top:20px"></div></section>
 
-<section id="results"><h2 class="section-title">Student Results</h2><p class="sub">Result search can be connected to your student database later.</p><form><label>Student / Roll Number</label><input placeholder="Enter roll number"><button class="btn primary" type="button" onclick="alert('Result database will be connected in the next development step.')">Check Result</button></form></section>
+<section id="results"><h2 class="section-title">Student Results</h2><p class="sub">Latest published results.</p><div id="publicResults" class="cards"><div class="card"><h3>Loading results…</h3></div></div></section>
 
-<section id="contact"><h2 class="section-title">Contact Us</h2><p class="sub">We would love to hear from you.</p><div class="cards"><div class="card"><h3>📍 Address</h3><p>Witty Buddy Play School, Ayodhyapuri, Front of Hotel Grand Patliputra, Near Daroga Rai College, Mairwa Road, Siwan, Bihar, PIN-841226</p></div><div class="card"><h3>📞 Call / WhatsApp</h3><p>Mobile number to be confirmed and added here.</p></div><div class="card"><h3>🗺️ Location</h3><p>Google Maps location can be embedded after the exact map pin is confirmed.</p></div></div></section>
+<section id="contact"><h2 class="section-title">Contact Us</h2><p class="sub">We would love to hear from you.</p><div class="cards"><div class="card"><h3>📍 Address</h3><p id="publicAddress">Loading…</p></div><div class="card"><h3>📞 Call / WhatsApp</h3><p id="publicContact">Loading…</p></div><div class="card"><h3>🗺️ Location</h3><p>Google Maps location can be embedded after the exact map pin is confirmed.</p></div></div></section>
 </main>
 
 <footer><div class="footer-inner"><div><h2>Witty Buddy Play School</h2><p>Small steps, big learning, new beginnings every day.</p></div><div><h3>Quick Links</h3><p>Admissions<br>Notices<br>Gallery<br>Results</p></div><div><h3>Website</h3><p>wittybuddyplayschool.in</p></div></div></footer>
 <script>
-(function(){
-  const saved = localStorage.getItem("wittyBuddyHomeBanner");
-  if(saved){ document.getElementById("homeBanner").src = saved; }
+(async function(){
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+  try {
+    const r = await fetch('/api/site', {cache:'no-store'});
+    if(!r.ok) throw new Error('API '+r.status);
+    const data = await r.json();
+    const st = data.settings || {};
+    document.querySelectorAll('.schoolName').forEach(e => e.textContent = st.schoolName || 'Witty Buddy Play School');
+    const h = document.querySelector('.hero h1'); if(h) h.textContent = st.schoolName || 'Witty Buddy Play School';
+    const tag = document.querySelector('.hero p'); if(tag) tag.textContent = st.tagline || '';
+    const addr = document.getElementById('publicAddress'); if(addr) addr.textContent = st.address || '';
+    const contact = document.getElementById('publicContact');
+    if(contact){
+      const m=(st.mobile||'').trim(), w=(st.whatsapp||'').replace(/\D/g,'');
+      contact.innerHTML = (m ? '<a href="tel:'+esc(m)+'">'+esc(m)+'</a>' : '') + (w ? (m?' &nbsp; ':'')+'<a href="https://wa.me/'+esc(w)+'" target="_blank" rel="noopener">WhatsApp</a>' : '');
+      if(!contact.innerHTML) contact.textContent='Contact number will be updated soon.';
+    }
+    const notices=document.getElementById('publicNotices');
+    notices.innerHTML=(data.notices||[]).length ? data.notices.map(n=>'<div class="card"><h3>'+esc(n.title)+'</h3><p>'+esc(n.body).replace(/\n/g,'<br>')+'</p></div>').join('') : '<div class="card"><h3>No notices yet</h3><p>New school notices will appear here.</p></div>';
+    const gallery=document.getElementById('publicGallery');
+    gallery.innerHTML=(data.gallery||[]).length ? data.gallery.map(g=>'<div><img src="'+esc(g.image)+'" alt="'+esc(g.caption||'School activity')+'" style="width:100%;height:190px;object-fit:cover;border-radius:18px"><div style="padding:8px 2px;font-weight:600">'+esc(g.caption||'')+'</div></div>').join('') : '<div style="height:190px;border-radius:18px;background:#e5e7eb;display:grid;place-items:center;color:#667085;font-weight:700">No photos yet</div>';
+    const ach=document.getElementById('publicAchievements');
+    ach.innerHTML=(data.achievements||[]).length ? data.achievements.map(a=>'<div class="card"><h3>'+esc(a.title)+'</h3><p>'+esc(a.body).replace(/\n/g,'<br>')+'</p>'+(a.image?'<img src="'+esc(a.image)+'" alt="Achievement" style="width:100%;max-height:240px;object-fit:cover;border-radius:14px">':'')+'</div>').join('') : '';
+    const results=document.getElementById('publicResults');
+    results.innerHTML=(data.results||[]).length ? data.results.map(x=>'<div class="card"><h3>'+esc(x.title)+'</h3><p>'+esc(x.body).replace(/\n/g,'<br>')+'</p></div>').join('') : '<div class="card"><h3>No results published yet</h3></div>';
+    const fee=document.querySelector('#payment p'); if(fee && st.admissionFee) fee.textContent='Admission fee: ₹'+esc(st.admissionFee)+(st.upiId?' | UPI: '+esc(st.upiId):'');
+  } catch(e) { console.error('Public site data load failed',e); }
 })();
 </script>
 <script>
 (function(){
-  try{
-    const c=JSON.parse(localStorage.getItem('wbsContact')||'null');
-    const p=JSON.parse(localStorage.getItem('wbsPayment')||'null');
-    const b=localStorage.getItem('wittyBuddyHomeBanner');
-    if(b){
-      document.querySelectorAll('img').forEach(function(img){
-        if((img.alt||'').toLowerCase().includes('banner')) img.src=b;
-      });
-    }
-    if(c){
-      document.querySelectorAll('[href^="tel:"]').forEach(function(a){if(c.mobile)a.href='tel:'+c.mobile.replace(/\s+/g,'')});
-      document.querySelectorAll('[href^="https://wa.me/"]').forEach(function(a){if(c.whatsapp)a.href='https://wa.me/'+c.whatsapp.replace(/\D/g,'')});
-    }
-  }catch(e){}
+  const form=document.querySelector('#admission form');
+  if(!form) return;
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const inputs=form.querySelectorAll('input,select,textarea');
+    const v=inputs;
+    try{
+      const r=await fetch('/api/admissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({student_name:v[0].value,class_name:v[1].value,guardian_name:v[2].value,mobile:v[3].value,address:v[4].value,document_name:v[5].files[0]?.name||''})});
+      const d=await r.json();
+      if(!r.ok) throw new Error(d.error||'Submission failed');
+      document.getElementById('payment').style.display='block';
+      document.getElementById('thanks').style.display='block';
+    }catch(err){ alert(err.message); }
+  });
 })();
 </script>
-
 </body></html>

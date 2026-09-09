@@ -5,6 +5,9 @@ const bcrypt = require("bcryptjs");
 const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
+const https = require("https");
+const crypto = require("crypto");
+const QRCode = require("qrcode");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -76,8 +79,8 @@ const defaults = {
  address: "Witty Buddy Play School, Ayodhyapuri, Front of Hotel Grand Patliputra, Near Daroga Rai College, Mairwa Road, Siwan, Bihar, PIN-841226",
  mobile: "",
  whatsapp: "",
- admissionFee: "",
- upiId: ""
+ admissionFee: "1000",
+ upiId: "tarakpndy1991@oksbi"
 };
 const setStmt = db.prepare("INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)");
 Object.entries(defaults).forEach(([k,v])=>setStmt.run(k,v));
@@ -156,6 +159,21 @@ app.post("/api/results",auth,(req,res)=>{
  const r=db.prepare("INSERT INTO results(title,body) VALUES(?,?)").run(req.body.title||"",req.body.body||"");res.json({id:r.lastInsertRowid});
 });
 app.delete("/api/results/:id",auth,(req,res)=>{db.prepare("DELETE FROM results WHERE id=?").run(req.params.id);res.json({ok:true})});
+
+
+function razorpayRequest(method, pathname, body){
+ return new Promise((resolve,reject)=>{
+  const key=process.env.RAZORPAY_KEY_ID, secret=process.env.RAZORPAY_KEY_SECRET;
+  if(!key||!secret)return reject(new Error('Razorpay is not configured'));
+  const data=body?JSON.stringify(body):'';
+  const rq=https.request({hostname:'api.razorpay.com',path:pathname,method,auth:key+':'+secret,headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(data)}},r=>{let out='';r.on('data',c=>out+=c);r.on('end',()=>{let d={};try{d=JSON.parse(out)}catch{}if(r.statusCode>=200&&r.statusCode<300)resolve(d);else reject(new Error(d?.error?.description||'Razorpay request failed'));});});
+  rq.on('error',reject);if(data)rq.write(data);rq.end();
+ });
+}
+app.get('/api/payment-config',(req,res)=>{const settings=allData().settings;res.set('Cache-Control','no-store');res.json({admissionFee:Number(settings.admissionFee||0),upiId:settings.upiId||'',razorpayConfigured:!!(process.env.RAZORPAY_KEY_ID&&process.env.RAZORPAY_KEY_SECRET),razorpayKeyId:process.env.RAZORPAY_KEY_ID||''});});
+app.get('/api/payment-qr',async(req,res)=>{try{const st=allData().settings,upi=(st.upiId||'').trim();if(!upi)return res.status(404).json({error:'UPI details are not configured yet.'});const amount=Number(st.admissionFee||0),p=new URLSearchParams({pa:upi,pn:st.schoolName||'Witty Buddy Play School',cu:'INR'});if(amount>0)p.set('am',amount.toFixed(2));const png=await QRCode.toBuffer('upi://pay?'+p.toString(),{width:600,margin:2,errorCorrectionLevel:'M'});res.set('Content-Type','image/png');res.set('Cache-Control','no-store');res.send(png);}catch(e){console.error('QR generation failed',e);res.status(500).json({error:'QR generation failed'});}});
+app.post('/api/create-order',async(req,res)=>{try{const st=allData().settings,amount=Math.round(Number(st.admissionFee||0)*100);if(!amount)return res.status(400).json({error:'Admission fee is not configured.'});const order=await razorpayRequest('POST','/v1/orders',{amount,currency:'INR',receipt:'admission_'+Date.now(),notes:{purpose:'School admission fee'}});res.json({id:order.id,amount:order.amount,currency:order.currency});}catch(e){console.error('Order creation failed',e);res.status(503).json({error:e.message});}});
+app.post('/api/verify-payment',(req,res)=>{try{const {razorpay_order_id,razorpay_payment_id,razorpay_signature}=req.body||{};if(!razorpay_order_id||!razorpay_payment_id||!razorpay_signature)return res.status(400).json({error:'Incomplete payment response'});const expected=crypto.createHmac('sha256',process.env.RAZORPAY_KEY_SECRET||'').update(razorpay_order_id+'|'+razorpay_payment_id).digest('hex');if(!crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(razorpay_signature)))return res.status(400).json({error:'Payment signature verification failed'});res.json({ok:true});}catch(e){console.error('Payment verification failed',e);res.status(500).json({error:'Payment verification failed'});}});
 
 app.post("/api/admissions", (req,res)=>{
  const {student_name,class_name,guardian_name,mobile,address,document_name=""}=req.body;

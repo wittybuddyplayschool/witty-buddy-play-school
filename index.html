@@ -68,9 +68,13 @@ footer{background:#172033;color:#fff;padding:40px 20px}.footer-inner{max-width:1
 <label>Document (optional)</label><input type="file">
 <button class="btn primary" type="submit">Submit & Proceed to Payment</button>
 <div id="thanks" style="display:none;margin-top:15px"><strong>Application received.</strong> Please proceed to the payment step.</div>
-<div id="payment" style="display:none;margin-top:15px;padding:18px;background:#f6f7fb;border-radius:14px">
-<strong>UPI Payment</strong><p>UPI payment details will be added here once the school provides the UPI ID and final fee amount.</p>
-<button class="btn" type="button" onclick="alert('UPI details are not configured yet.')">Pay via UPI</button>
+<div id="payment" style="display:none;margin-top:15px;padding:20px;background:#f6f7fb;border-radius:18px">
+<h3 style="margin-top:0">Payment Options</h3>
+<p id="paymentSummary" style="margin-bottom:14px">Loading payment details…</p>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;align-items:center">
+<div style="background:#fff;padding:16px;border-radius:16px;text-align:center;border:1px solid #e5e7eb"><strong>Scan QR to Pay</strong><div style="margin:12px auto;min-height:220px;display:grid;place-items:center"><img id="upiQr" alt="UPI payment QR code" style="width:210px;height:210px;object-fit:contain;border-radius:10px;display:none"></div><div id="upiText" style="font-size:14px;color:#475467;word-break:break-all"></div></div>
+<div style="background:#fff;padding:16px;border-radius:16px;border:1px solid #e5e7eb"><strong>UPI Payment</strong><p style="color:#667085;font-size:14px">Pay securely using any supported UPI app.</p><a id="upiPayBtn" class="btn primary" href="#" style="width:100%;text-align:center;box-sizing:border-box">Pay with UPI</a><div id="gatewayNote" style="font-size:13px;color:#667085;margin-top:10px">No card or payment gateway is required.</div></div>
+</div>
 </div>
 </form></section>
 
@@ -110,7 +114,24 @@ footer{background:#172033;color:#fff;padding:40px 20px}.footer-inner{max-width:1
     ach.innerHTML=(data.achievements||[]).length ? data.achievements.map(a=>'<div class="card"><h3>'+esc(a.title)+'</h3><p>'+esc(a.body).replace(/\n/g,'<br>')+'</p>'+(a.image?'<img src="'+esc(a.image)+'" alt="Achievement" style="width:100%;max-height:240px;object-fit:cover;border-radius:14px">':'')+'</div>').join('') : '';
     const results=document.getElementById('publicResults');
     results.innerHTML=(data.results||[]).length ? data.results.map(x=>'<div class="card"><h3>'+esc(x.title)+'</h3><p>'+esc(x.body).replace(/\n/g,'<br>')+'</p></div>').join('') : '<div class="card"><h3>No results published yet</h3></div>';
-    const fee=document.querySelector('#payment p'); if(fee && st.admissionFee) fee.textContent='Admission fee: ₹'+esc(st.admissionFee)+(st.upiId?' | UPI: '+esc(st.upiId):'');
+    setupPayment(st);
+
+  async function setupPayment(st){
+    const fee=Number(st.admissionFee||0), upi=(st.upiId||'').trim();
+    const summary=document.getElementById('paymentSummary'), qr=document.getElementById('upiQr'), upiText=document.getElementById('upiText'), upiBtn=document.getElementById('upiPayBtn');
+    if(summary) summary.textContent=fee ? 'Amount to pay: ₹'+fee.toFixed(2) : 'Payment amount is not configured yet.';
+    if(upi){
+      if(upiText) upiText.textContent='UPI ID: '+upi;
+      const p=new URLSearchParams({pa:upi,pn:st.schoolName||'Witty Buddy Play School',cu:'INR'}); if(fee>0)p.set('am',fee.toFixed(2));
+      if(upiBtn){upiBtn.href='upi://pay?'+p.toString();upiBtn.style.display='inline-block';}
+      if(qr){qr.src='/api/payment-qr?'+Date.now();qr.style.display='block';}
+    }else{
+      if(upiText) upiText.textContent='UPI details are not configured yet.';
+      if(upiBtn) upiBtn.style.display='none';
+      if(qr) qr.style.display='none';
+    }
+  }
+
   } catch(e) { console.error('Public site data load failed',e); }
 })();
 </script>

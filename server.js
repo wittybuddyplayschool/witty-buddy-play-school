@@ -62,6 +62,11 @@ CREATE TABLE IF NOT EXISTS admissions (
 );
 `);
 
+// Safe migration for older databases: add payment tracking if it is missing.
+const admissionColumns = db.prepare("PRAGMA table_info(admissions)").all().map(c => c.name);
+if (!admissionColumns.includes("payment_status")) db.exec("ALTER TABLE admissions ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'Pending'");
+if (!admissionColumns.includes("payment_confirmed_at")) db.exec("ALTER TABLE admissions ADD COLUMN payment_confirmed_at TEXT DEFAULT ''");
+
 const defaultUser = process.env.ADMIN_USERNAME || "admin";
 const defaultPass = process.env.ADMIN_PASSWORD || "Witty@2026";
 const exists = db.prepare("SELECT id FROM admin_users WHERE username=?").get(defaultUser);
@@ -176,14 +181,84 @@ app.post('/api/create-order',async(req,res)=>{try{const st=allData().settings,am
 app.post('/api/verify-payment',(req,res)=>{try{const {razorpay_order_id,razorpay_payment_id,razorpay_signature}=req.body||{};if(!razorpay_order_id||!razorpay_payment_id||!razorpay_signature)return res.status(400).json({error:'Incomplete payment response'});const expected=crypto.createHmac('sha256',process.env.RAZORPAY_KEY_SECRET||'').update(razorpay_order_id+'|'+razorpay_payment_id).digest('hex');if(!crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(razorpay_signature)))return res.status(400).json({error:'Payment signature verification failed'});res.json({ok:true});}catch(e){console.error('Payment verification failed',e);res.status(500).json({error:'Payment verification failed'});}});
 
 app.post("/api/admissions", (req,res)=>{
- const {student_name,class_name,guardian_name,mobile,address,document_name=""}=req.body;
- if(!student_name||!class_name||!guardian_name||!mobile||!address) return res.status(400).json({error:"Please fill all required fields"});
- const r=db.prepare(`INSERT INTO admissions(student_name,class_name,guardian_name,mobile,address,document_name) VALUES(?,?,?,?,?,?)`)
- .run(student_name,class_name,guardian_name,mobile,address,document_name);
- res.json({ok:true,id:r.lastInsertRowid,message:"Application received"});
+ const {student_name,class_name,guardian_name,mobile,address,document_name=""}=req.body||{};
+ const clean={
+  student_name:String(student_name||'').trim(), class_name:String(class_name||'').trim(),
+  guardian_name:String(guardian_name||'').trim(), mobile:String(mobile||'').trim(),
+  address:String(address||'').trim(), document_name:String(document_name||'').trim()
+ };
+ if(!clean.student_name||!clean.class_name||!clean.guardian_name||!clean.mobile||!clean.address) return res.status(400).json({error:"Please fill all required fields"});
+ // Prevent duplicate applications caused by repeated taps/retries for the same details.
+ const recent=db.prepare(`SELECT id FROM admissions WHERE student_name=? AND class_name=? AND guardian_name=? AND mobile=? AND address=? AND document_name=? AND created_at >= datetime('now','-24 hours') ORDER BY id DESC LIMIT 1`).get(clean.student_name,clean.class_name,clean.guardian_name,clean.mobile,clean.address,clean.document_name);
+ if(recent) return res.json({ok:true,id:recent.id,message:"Application already received",duplicate:true});
+ const r=db.prepare(`INSERT INTO admissions(student_name,class_name,guardian_name,mobile,address,document_name,payment_status,payment_confirmed_at) VALUES(?,?,?,?,?,?,?,?)`)
+  .run(clean.student_name,clean.class_name,clean.guardian_name,clean.mobile,clean.address,clean.document_name,'Pending','');
+ res.json({ok:true,id:r.lastInsertRowid,message:"Application received",duplicate:false});
+});
+app.post('/api/admissions/:id/payment-confirmed',(req,res)=>{
+ const id=Number(req.params.id);
+ if(!Number.isInteger(id)||id<1)return res.status(400).json({error:'Invalid application'});
+ const r=db.prepare("UPDATE admissions SET payment_status='Marked as completed', payment_confirmed_at=CURRENT_TIMESTAMP WHERE id=?").run(id);
+ if(!r.changes)return res.status(404).json({error:'Application not found'});
+ res.json({ok:true,message:'Payment marked as completed'});
 });
 app.get("/api/admissions",auth,(req,res)=>res.json(db.prepare("SELECT * FROM admissions ORDER BY id DESC").all()));
 
 app.get("/admin", (req,res)=>res.sendFile(path.join(__dirname,"admin-online.html")));
 app.use((err,req,res,next)=>{console.error("Unhandled server error",err);if(res.headersSent)return next(err);res.status(500).json({error:"Server error: "+err.message})});
+
+// Patch the existing HTML at startup so only this server.js needs to be replaced in GitHub.
+function patchPublicAndAdminPages(){
+ try{
+  const indexFile=path.join(__dirname,'index.html');
+  if(fs.existsSync(indexFile)){
+   let html=fs.readFileSync(indexFile,'utf8');
+   html=html.replace(/<script>\s*\(function\(\)\{\s*const form=document\.querySelector\('#admission form'\);[\s\S]*?\}\)\(\);\s*<\/script>/g,'');
+   html=html.replace(/onsubmit="event\.preventDefault\(\); document\.getElementById\('payment'\)\.style\.display='block'; document\.getElementById\('thanks'\)\.style\.display='block';"/g,'onsubmit="return false;"');
+   const js=`<script>
+(function(){
+  const form=document.querySelector('#admission form'); if(!form) return;
+  let submitting=false, admissionId=null;
+  const btn=document.getElementById('admissionSubmitBtn'), thanks=document.getElementById('thanks'), payment=document.getElementById('payment'), status=document.getElementById('paymentStatus'), done=document.getElementById('paymentDoneBtn');
+  form.addEventListener('submit', async function(e){
+    e.preventDefault(); e.stopPropagation(); if(submitting) return;
+    const v=form.querySelectorAll('input,select,textarea'); submitting=true;
+    if(btn){btn.disabled=true;btn.textContent='Submitting…';}
+    try{
+      const payload={student_name:v[0].value.trim(),class_name:v[1].value,guardian_name:v[2].value.trim(),mobile:v[3].value.trim(),address:v[4].value.trim(),document_name:v[5].files[0]?.name||''};
+      const r=await fetch('/api/admissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const d=await r.json(); if(!r.ok) throw new Error(d.error||'Submission failed');
+      admissionId=d.id;
+      if(thanks){thanks.style.display='block';thanks.innerHTML=d.duplicate?'✓ Application already received. We found your existing application.':'✓ Application submitted successfully.';}
+      if(payment) payment.style.display='block'; if(done) done.style.display='block';
+      if(status) status.textContent='Please complete the UPI payment. After your UPI app shows SUCCESS, return here and tap “I Have Completed Payment”.';
+      if(payment) payment.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(err){alert(err.message||'Submission failed');submitting=false;if(btn){btn.disabled=false;btn.textContent='Submit & Proceed to Payment';}}
+  },true);
+  const payBtn=document.getElementById('upiPayBtn');
+  if(payBtn) payBtn.addEventListener('click',function(){setTimeout(function(){if(status) status.textContent='UPI app opened. If the UPI app shows SUCCESS, return here and tap “I Have Completed Payment”.';},500);});
+  if(done) done.addEventListener('click',async function(){
+    if(!admissionId){alert('Please submit the admission form first.');return;}
+    done.disabled=true; done.textContent='Confirming…';
+    try{
+      const r=await fetch('/api/admissions/'+admissionId+'/payment-confirmed',{method:'POST'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Could not update payment');
+      if(status){status.textContent='✓ Payment completed successfully. Your admission application and payment confirmation have been recorded.';status.style.color='#087443';}
+      done.textContent='Payment Completed ✓';
+    }catch(err){done.disabled=false;done.textContent='I Have Completed Payment';alert(err.message||'Could not update payment');}
+  });
+})();
+</script>`;
+   html=html.replace('</body></html>',js+'\n</body></html>');
+   fs.writeFileSync(indexFile,html);
+  }
+  const adminFile=path.join(__dirname,'admin-online.html');
+  if(fs.existsSync(adminFile)){
+   let html=fs.readFileSync(adminFile,'utf8');
+   html=html.replace(/<div class=item><b>\$\{esc\(x\.student_name\)\}<\/b> — \$\{esc\(x\.class_name\)\}<br>Guardian: \$\{esc\(x\.guardian_name\)\}<br>Mobile: \$\{esc\(x\.mobile\)\}<br>Address: \$\{esc\(x\.address\)\}<br><span class=muted>\$\{esc\(x\.created_at\)\}<\/span><\/div>/g,
+   "<div class=item><b>${esc(x.student_name)}</b> — ${esc(x.class_name)}<br>Guardian: ${esc(x.guardian_name)}<br>Mobile: ${esc(x.mobile)}<br>Address: ${esc(x.address)}<br><b>Payment: ${esc(x.payment_status||'Pending')}</b><br><span class=muted>${esc(x.created_at)}</span></div>");
+   fs.writeFileSync(adminFile,html);
+  }
+ }catch(e){console.error('HTML patch failed',e);}
+}
+patchPublicAndAdminPages();
 app.listen(PORT,"0.0.0.0",()=>console.log(`Witty Buddy Play School running on port ${PORT}`));
